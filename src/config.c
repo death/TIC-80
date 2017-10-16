@@ -56,6 +56,16 @@ static void readConfigCheckNewVersion(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
+static void readConfigSfxOnStart(Config *config, lua_State *lua)
+{
+	lua_getglobal(lua, "SFX_ON_START");
+
+	if (lua_isboolean(lua, -1))
+		config->data.sfxOnStart = lua_toboolean(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
 static void readCursorTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "CURSOR");
@@ -70,7 +80,7 @@ static void readCursorTheme(Config* config, lua_State* lua)
 				config->data.theme.cursor.sprite = (s32)lua_tointeger(lua, -1);
 			}
 
-			lua_pop(lua, 1);			
+			lua_pop(lua, 1);
 		}
 
 		{
@@ -78,7 +88,7 @@ static void readCursorTheme(Config* config, lua_State* lua)
 			if(lua_isboolean(lua, -1))
 				config->data.theme.cursor.pixelPerfect = lua_toboolean(lua, -1);
 
-			lua_pop(lua, 1);			
+			lua_pop(lua, 1);
 		}
 	}
 
@@ -174,6 +184,7 @@ static void readConfig(Config* config)
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);
 			readConfigCheckNewVersion(config, lua);
+			readConfigSfxOnStart(config, lua);
 			readTheme(config, lua);
 		}
 
@@ -192,7 +203,7 @@ static void update(Config* config, const u8* buffer, size_t size)
 static void setDefault(Config* config)
 {
 	{
-		static const u8 DefaultBiosZip[] = 
+		static const u8 DefaultBiosZip[] =
 		{
 			#include "../bin/assets/config.tic.dat"
 		};

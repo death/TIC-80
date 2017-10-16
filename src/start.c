@@ -47,7 +47,9 @@ static void header(Start* start)
 {
 	if(!start->play)
 	{
-		playSystemSfx(1);
+		if (getConfig()->sfxOnStart) {
+			playSystemSfx(1);
+		}
 
 		start->play = true;
 	}
@@ -58,8 +60,11 @@ static void header(Start* start)
 static void end(Start* start)
 {
 	if(start->play)
-	{	
-		start->tic->api.sfx_stop(start->tic, 0);
+	{
+		if (getConfig()->sfxOnStart) {
+			start->tic->api.sfx_stop(start->tic, 0);
+		}
+
 		start->play = false;
 	}
 

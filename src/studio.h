@@ -103,8 +103,9 @@ typedef struct
 
 	s32 gifScale;
 	s32 gifLength;
-	
+
 	bool checkNewVersion;
+	bool sfxOnStart;
 
 } StudioConfig;
 
