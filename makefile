@@ -330,5 +330,5 @@ bin/assets/luademo.tic.dat: demos/luademo.tic
 bin/assets/moondemo.tic.dat: demos/moondemo.tic
 	$(BIN2TXT) $< $@ -z
 
-clean: $(TIC_O) $(TIC80_O)
+clean:
 	$(RM) $(TIC_O) $(TIC80_O)
