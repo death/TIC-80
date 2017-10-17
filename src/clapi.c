@@ -682,7 +682,7 @@ void callCommonLispScanline(tic_mem* memory, s32 row)
 			cl_env_ptr env = ecl_process_env();
 			ECL_CATCH_ALL_BEGIN(env)
 			{
-				cl_funcall(1, sym);
+				cl_funcall(2, sym, ecl_make_int32_t(row));
 			}
 			ECL_CATCH_ALL_IF_CAUGHT
 			{
