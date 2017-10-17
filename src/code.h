@@ -38,6 +38,7 @@ struct Code
 		struct
 		{
 			char* position;
+			char* parenmatch;
 			char* selection;
 			s32 tick;
 			s32 column;

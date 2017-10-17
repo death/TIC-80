@@ -132,7 +132,7 @@ static void drawCode(Code* code, bool withCursor)
 	s32 x = xStart;
 	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
 	char* pointer = code->data;
-	char* parenmatch = matchingParen(code);
+	char* parenmatch = code->cursor.parenmatch;
 
 	u8* colorPointer = code->colorBuffer;
 
@@ -221,12 +221,14 @@ static void updateEditor(Code* code)
 	getCursorPosition(code, &column, &line);
 
 	if(column < code->scroll.x) code->scroll.x = column;
-	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH) 
+	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH)
 		code->scroll.x = column - TEXT_BUFFER_WIDTH + 1;
 
 	if(line < code->scroll.y) code->scroll.y = line;
-	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT) 
+	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT)
 		code->scroll.y = line - TEXT_BUFFER_HEIGHT + 1;
+
+	code->cursor.parenmatch = matchingParen(code);
 
 	code->cursor.delay = TEXT_CURSOR_DELAY;
 
@@ -1929,7 +1931,7 @@ void initCode(Code* code, tic_mem* tic)
 		.data = tic->cart.code.data,
 		.tick = tick,
 		.escape = escape,
-		.cursor = {{tic->cart.code.data, NULL, 0, 0}, NULL, 0},
+		.cursor = {{tic->cart.code.data, NULL, NULL, 0, 0}, NULL, 0},
 		.rect = {0, TOOLBAR_SIZE, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,
