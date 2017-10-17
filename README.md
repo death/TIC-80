@@ -1,3 +1,43 @@
+# TIC-80 CL fork notes
+
+This fork makes it possible to use Common Lisp with TIC-80.
+
+It's another late-night hack, and therefore bound to be riddled with
+bugs and whatnot.
+
+Platforms other than Linux 64 are left for dead.
+
+There's not much error checking, and I opted to treat most TIC-80 API
+arguments as optional.
+
+It doesn't try to limit functionality of the embedded Lisp, and
+therefore not suitable for running untrusted code.
+
+It is my first attempt at embedding
+[ECL](https://common-lisp.net/project/ecl/), and therefore likely
+contain a bunch of WTFs.
+
+Example WTF: I've no idea how to reset the environment, apparently
+`cl_shutdown` is not enough.
+
+Example WTF: I've no idea how to statically link ECL, so have to do
+with the shared library.
+
+ECL has been compiled with the following configuration:
+
+```
+./configure --enable-threads=no --with-tcp=no --with-serve-event=no --with-asdf=no \
+            --with-defsystem=no --with-rt=no --with-profile=no --with-dffi=no
+```
+
+After compiling TIC-80, you can run it from the `bin` directory using:
+
+```
+LD_PRELOAD=../lib/linux/libecl.so ./tic
+```
+
+Then use `new cl` to create a CL-based cart.
+
 # TIC-80 issues tracker and wiki
 
 [Discord chat](https://discord.gg/DkD73dP)

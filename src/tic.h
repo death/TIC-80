@@ -408,7 +408,8 @@ typedef enum
 
 typedef enum
 {
-	tic_script_lua,	
+	tic_script_lua,
 	tic_script_moon,
 	tic_script_js,
+	tic_script_cl,
 } tic_script_lang;

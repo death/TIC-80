@@ -67,6 +67,7 @@ static const char CartExt[] = ".tic";
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
 static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
+static const char DefaultCLTicPath[] = TIC_LOCAL "default_cl.tic";
 
 static const char* getRomName(const char* name)
 {
@@ -406,7 +407,10 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 			strcpy(path, DefaultMoonTicPath);
 			break;
 		case tic_script_js:
-		strcpy(path, DefaultJSTicPath);
+			strcpy(path, DefaultJSTicPath);
+			break;
+		case tic_script_cl:
+			strcpy(path, DefaultCLTicPath);
 			break;
 		}
 
@@ -416,21 +420,26 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 			return data;
 	}
 
-	static const u8 LuaDemoRom[] = 
+	static const u8 LuaDemoRom[] =
 	{
 		#include "../bin/assets/luademo.tic.dat"
 	};
 
-	static const u8 JsDemoRom[] = 
+	static const u8 JsDemoRom[] =
 	{
 		#include "../bin/assets/jsdemo.tic.dat"
 	};
 
-	static const u8 MoonDemoRom[] = 
+	static const u8 MoonDemoRom[] =
 	{
 		#include "../bin/assets/moondemo.tic.dat"
 	};
-	
+
+	static const u8 CLDemoRom[] =
+	{
+		#include "../bin/assets/cldemo.tic.dat"
+	};
+
 	const u8* demo = NULL;
 	s32 romSize = 0;
 
@@ -447,6 +456,10 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 	case tic_script_js:
 		demo = JsDemoRom;
 		romSize = sizeof JsDemoRom;
+		break;
+	case tic_script_cl:
+		demo = CLDemoRom;
+		romSize = sizeof CLDemoRom;
 		break;
 	}
 
@@ -467,13 +480,15 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 	s32 size = 0;
 
 	console->showGameMenu = false;
-	
+
 	if(strcmp(param, DefaultLuaTicPath) == 0)
 		data = getDemoCart(console, tic_script_lua, &size);
 	else if(strcmp(param, DefaultMoonTicPath) == 0)
 		data = getDemoCart(console, tic_script_moon, &size);
 	else if(strcmp(param, DefaultJSTicPath) == 0)
 		data = getDemoCart(console, tic_script_js, &size);
+	else if(strcmp(param, DefaultCLTicPath) == 0)
+		data = getDemoCart(console, tic_script_cl, &size);
 
 	const char* name = getRomName(param);
 
@@ -633,6 +648,8 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 			loadDemo(console, tic_script_moon);
 		else if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
 			loadDemo(console, tic_script_js);
+		else if(strcmp(param, "cl") == 0 || strcmp(param, "commonlisp") == 0)
+			loadDemo(console, tic_script_cl);
 		else
 		{
 			printError(console, "\nunknown parameter: ");
@@ -878,9 +895,13 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	{
 		onConsoleLoadDemoCommand(console, DefaultMoonTicPath);
 	}
-	else if(strcmp(param, "default js") == 0)
+	else if(strcmp(param, "default js") == 0 || strcmp(param, "default javascript") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultJSTicPath);
+	}
+	else if(strcmp(param, "default cl") == 0 || strcmp(param, "default commonlisp") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultCLTicPath);
 	}
 	else
 	{

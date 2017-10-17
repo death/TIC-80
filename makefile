@@ -6,6 +6,7 @@ RM= rm -f
 
 INCLUDES= \
 	-Iinclude/lua \
+	-Iinclude \
 	-Iinclude/zlib \
 	-Iinclude/gif \
 	-Iinclude/sdl2 \
@@ -41,6 +42,8 @@ LINUX_LINKER_FLAGS= \
 	-D_GNU_SOURCE \
 	-lSDL2 \
 	-llua \
+	-lecl \
+	-lgc \
 	-ldl \
 	-lm \
 	-lpthread \
@@ -126,6 +129,7 @@ DEMO_ASSETS= \
 	bin/assets/jsdemo.tic.dat \
 	bin/assets/luademo.tic.dat \
 	bin/assets/moondemo.tic.dat \
+	bin/assets/cldemo.tic.dat \
 	bin/assets/config.tic.dat
 
 all: run
@@ -252,11 +256,14 @@ bin/jsapi.o: src/jsapi.c $(TIC80_H)
 bin/luaapi.o: src/luaapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+bin/clapi.o: src/clapi.c $(TIC80_H)
+	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+
 bin/duktape.o: src/ext/duktape/duktape.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c src/ext/duktape/duktape.c
-TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
+TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c src/clapi.c src/ext/duktape/duktape.c
+TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o src/clapi.o bin/duktape.o bin/gif.o
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
@@ -328,6 +335,9 @@ bin/assets/luademo.tic.dat: demos/luademo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/moondemo.tic.dat: demos/moondemo.tic
+	$(BIN2TXT) $< $@ -z
+
+bin/assets/cldemo.tic.dat: demos/cldemo.tic
 	$(BIN2TXT) $< $@ -z
 
 clean:

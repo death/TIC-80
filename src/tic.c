@@ -1303,6 +1303,7 @@ static const char* readMetatag(const char* code, const char* tag, const char* fo
 
 static const char* TagFormatLua = "-- %s:";
 static const char* TagFormatJS = "// %s:";
+static const char* TagFormatCL = ";; %s:";
 
 static bool compareMetatag(const char* code, const char* tag, const char* value)
 {
@@ -1326,6 +1327,17 @@ static bool compareMetatag(const char* code, const char* tag, const char* value)
 			result = strcmp(str, value) == 0;
 			free((void*)str);
 		}
+		else
+		{
+			// CL comments
+			str = readMetatag(code, tag, TagFormatCL);
+
+			if (str)
+			{
+				result = strcmp(str, value) == 0;
+				free((void*)str);
+			}
+		}
 	}
 
 	return result;
@@ -1341,10 +1353,16 @@ static bool isJavascript(const char* code)
 	return compareMetatag(code, "script", "js") || compareMetatag(code, "script", "javascript");
 }
 
+static bool isCommonLisp(const char* code)
+{
+	return compareMetatag(code, "script", "cl") || compareMetatag(code, "script", "commonlisp");
+}
+
 static tic_script_lang api_get_script(tic_mem* memory)
 {
 	if(isMoonscript(memory->cart.code.data)) return tic_script_moon;
 	if(isJavascript(memory->cart.code.data)) return tic_script_js;
+	if(isCommonLisp(memory->cart.code.data)) return tic_script_cl;
 	return tic_script_lua;
 }
 
@@ -1465,6 +1483,13 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 
 				memory->script = tic_script_js;
 			}
+			else if(isCommonLisp(code))
+			{
+				if(!initCommonLisp(machine, code))
+					return;
+
+				memory->script = tic_script_cl;
+			}
 			else if(!initLua(machine, code))
 				return;
 		}
@@ -1473,14 +1498,32 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 		if(code != machine->memory.cart.code.data)
 			free(code);
 
-		machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
+		switch (memory->script) {
+		case tic_script_js:
+			machine->state.scanline = callJavascriptScanline;
+			break;
+		case tic_script_cl:
+			machine->state.scanline = callCommonLispScanline;
+			break;
+		default:
+			machine->state.scanline = callLuaScanline;
+			break;
+		}
 
 		machine->state.initialized = true;
 	}
 
-	memory->script == tic_script_js
-		? callJavascriptTick(machine)
-		: callLuaTick(machine);
+	switch (memory->script) {
+	case tic_script_js:
+		callJavascriptTick(machine);
+		break;
+	case tic_script_cl:
+		callCommonLispTick(machine);
+		break;
+	default:
+		callLuaTick(machine);
+		break;
+	}
 }
 
 static void api_scanline(tic_mem* memory, s32 row)

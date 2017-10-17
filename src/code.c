@@ -63,16 +63,80 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 	}
 }
 
+static char* matchingParen(Code* code)
+{
+	int depth = 1;
+	bool instr = false;
+	int dir;
+	char* p = code->cursor.position;
+	if (!p)
+	{
+		return NULL;
+	}
+	else if (*p == '(')
+	{
+		dir = +1;
+	}
+	else if (p != code->data && p[-1] == ')')
+	{
+		p--;
+		dir = -1;
+	}
+	else
+	{
+		return NULL;
+	}
+
+	while (p && *p && p != code->data)
+	{
+		p += dir;
+		switch (*p)
+		{
+		case ')':
+			if (!instr)
+			{
+				depth -= dir;
+				if (depth == 0)
+				{
+					return p;
+				}
+			}
+			break;
+		case '(':
+			if (!instr)
+			{
+				depth += dir;
+				if (depth == 0)
+				{
+					return p;
+				}
+			}
+			break;
+		case '"':
+			if (p == code->data || p[-1] != '\\')
+			{
+				instr = !instr;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	return NULL;
+}
+
 static void drawCode(Code* code, bool withCursor)
 {
 	s32 xStart = code->rect.x - code->scroll.x * STUDIO_TEXT_WIDTH;
 	s32 x = xStart;
 	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
 	char* pointer = code->data;
+	char* parenmatch = matchingParen(code);
 
 	u8* colorPointer = code->colorBuffer;
 
-	struct { char* start; char* end; } selection = {SDL_min(code->cursor.selection, code->cursor.position), 
+	struct { char* start; char* end; } selection = {SDL_min(code->cursor.selection, code->cursor.position),
 		SDL_max(code->cursor.selection, code->cursor.position)};
 
 	struct { s32 x; s32 y; char symbol;	} cursor = {-1, -1, 0};
@@ -81,10 +145,12 @@ static void drawCode(Code* code, bool withCursor)
 	{
 		char symbol = *pointer;
 
-		if(code->cursor.selection && pointer >= selection.start && pointer < selection.end)
+		if(parenmatch == pointer)
+			code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, *colorPointer);
+		else if(code->cursor.selection && pointer >= selection.start && pointer < selection.end)
 			code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
 
-		code->tic->api.draw_char(code->tic, symbol, x, y, *colorPointer);
+		code->tic->api.draw_char(code->tic, symbol, x, y, parenmatch == pointer ? getConfig()->theme.code.bg : *colorPointer);
 
 		if(code->cursor.position == pointer)
 			cursor.x = x, cursor.y = y, cursor.symbol = symbol;
@@ -309,6 +375,20 @@ static void highlightJsKeywords(Code* code, u8* color)
 	highlightWords(text, color, JsKeywords, COUNT_OF(JsKeywords), getConfig()->theme.code.keyword);
 }
 
+static void highlightCLKeywords(Code* code, u8* color)
+{
+	const char* text = code->data;
+
+	static const char* const CLKeywords [] =
+	{
+		"if", "loop", "do", "do*", "defun", "defmacro", "defgeneric",
+		"defmethod", "defclass", "defstruct", "cond", "let", "let*",
+		"dotimes", "dolist", "defvar", "defparameter", "when", "unless"
+	};
+
+	highlightWords(text, color, CLKeywords, COUNT_OF(CLKeywords), getConfig()->theme.code.keyword);
+}
+
 static void highlightApi(Code* code, u8* color)
 {
 	static const char* const ApiKeywords[] = API_KEYWORDS;
@@ -328,6 +408,29 @@ static void highlightNonChars(Code* code, u8* color)
 
 		text++;
 		color++;
+	}
+}
+
+static void highlightCLSigns(Code* code, u8* color)
+{
+	const char* text = code->data;
+
+	static const char* const Signs [] =
+	{
+		"(", ")",
+	};
+
+	for(s32 i = 0; i < COUNT_OF(Signs); i++)
+	{
+		const char* sign = Signs[i];
+		const char* start = text;
+
+		while((start = strstr(start, sign)))
+		{
+			size_t size = strlen(sign);
+			memset(color + (start - text), getConfig()->theme.code.sign, size);
+			start += size;
+		}
 	}
 }
 
@@ -398,6 +501,12 @@ static void highlightJsComments(Code* code, u8* color)
 	highlightCommentsBase(code, color, "/*", "*/", 2);
 }
 
+static void highlightCLComments(Code* code, u8* color)
+{
+	highlightCommentsBase(code, color, ";", "\n", 0);
+	highlightCommentsBase(code, color, "#|", "|#", 2);
+}
+
 static void parseSyntaxColor(Code* code)
 {
 	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
@@ -431,6 +540,15 @@ static void parseSyntaxColor(Code* code)
 		highlightNumbers(code, color);
 		highlightSigns(code, color);
 		highlightJsComments(code, color);
+		highlightStrings(code, code->data, color, '"');
+		break;
+        case tic_script_cl:
+		highlightNonChars(code, color);
+		highlightCLKeywords(code, color);
+		highlightApi(code, color);
+		highlightNumbers(code, color);
+		highlightCLSigns(code, color);
+		highlightCLComments(code, color);
 		highlightStrings(code, code->data, color, '"');
 		break;
 	}
@@ -1128,7 +1246,16 @@ static void commentLine(Code* code)
 	static char Comment[] = "-- ";
 	enum {Size = sizeof Comment-1};
 
-	strcpy(Comment, code->tic->api.get_script(code->tic) == tic_script_js ? "// " : "-- ");
+	switch (code->tic->api.get_script(code->tic)) {
+	case tic_script_js:
+		strcpy(Comment, "// ");
+		break;
+	case tic_script_cl:
+		strcpy(Comment, ";; ");
+		break;
+	default:
+		break;
+	}
 
 	char* line = getLine(code);
 
